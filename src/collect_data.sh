@@ -1,26 +1,26 @@
 #!/bin/sh
 
-rawResultDir="data/raw"
-numberOfMeasurements=100
+PID=$(pidof "${1}")
+RAW_RESULT_DIR="${2}"
+NUMBER_OF_MEASUREMENTS="${3}"
 
 
-PID=$(pidof "$1")
+ps -o pid,thcount > "${RAW_RESULT_DIR}"/thCount.log &
 
-ps -o pid,thcount > "$rawResultDir"/thCount.log &
+lsof -p "${PID}" > "${RAW_RESULT_DIR}"/listOfFileAndNetworks.log &
 
-lsof -p "$PID" > "$rawResultDir"/listOfFileAndNetworks.log &
+pmap -x "${PID}" > "${RAW_RESULT_DIR}"/memory_map.log &
 
-pmap -x "$PID" > "$rawResultDir"/memory_map.log &
+top -b -H -n$(("${NUMBER_OF_MEASUREMENTS}"/3)) -p "${PID}" > "${RAW_RESULT_DIR}"/threads.log &
 
-# strace -f -e trace=network -s 100 -p "$PID" > "$resultDir"/networkPackages &
-top -b -H -n$(("$numberOfMeasurements"/3)) -p "$PID" > "$rawResultDir"/threads.log &
+pidstat -p "${PID}" 1 "${NUMBER_OF_MEASUREMENTS}" > "${RAW_RESULT_DIR}"/cpu.log &
 
-pidstat -p "$PID" 1 "$numberOfMeasurements" > "$rawResultDir"/cpu.log &
+pidstat -p "${PID}" -d 1 "${NUMBER_OF_MEASUREMENTS}" > "${RAW_RESULT_DIR}"/io.log &
 
-pidstat -p "$PID" -d 1 "$numberOfMeasurements" > "$rawResultDir"/io.log &
+echo "rx tx" > "${RAW_RESULT_DIR}"/network.log
 
-echo "rx tx" > "$rawResultDir"/network.log
+bmon -r 1 -p wlan0 -o format:fmt='$(attr:rxrate:bytes) $(attr:txrate:bytes)\n' >> "${RAW_RESULT_DIR}"/network.log &
 
-bmon -p wlan0 -o format:fmt='$(attr:rxrate:bytes) $(attr:txrate:bytes)\n' >> "$rawResultDir"/network.log &
+sleep "${NUMBER_OF_MEASUREMENTS}" && kill $(pidof bmon)
 
-sleep "$numberOfMeasurements" && kill $(pidof bmon)
+lsof -p "${PID}" >> "${RAW_RESULT_DIR}"/listOfFileAndNetworks.log 
