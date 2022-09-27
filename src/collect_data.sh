@@ -1,13 +1,10 @@
 #!/bin/sh
 
-PID=$(pidof "${1}")
+PID="${1}"
 RAW_RESULT_DIR="${2}"
 NUMBER_OF_MEASUREMENTS="${3}"
 
-
-ps -o pid,thcount > "${RAW_RESULT_DIR}"/thCount.log &
-
-lsof -p "${PID}" > "${RAW_RESULT_DIR}"/listOfFileAndNetworks.log &
+ps huH -p "${PID}" | wc > "${RAW_RESULT_DIR}"/threads_count.log &
 
 pmap -x "${PID}" > "${RAW_RESULT_DIR}"/memory_map.log &
 
@@ -21,6 +18,11 @@ echo "rx tx" > "${RAW_RESULT_DIR}"/network.log
 
 bmon -r 1 -p wlan0 -o format:fmt='$(attr:rxrate:bytes) $(attr:txrate:bytes)\n' >> "${RAW_RESULT_DIR}"/network.log &
 
-sleep "${NUMBER_OF_MEASUREMENTS}" && kill $(pidof bmon)
+for network_port in $(sudo netstat -ltup | grep "${PID}" | awk '{split($4,port_parts,":"); print port_parts[2]}' | grep '^[0-9][0-9]*$')
+do
+    sudo tcpdump -i any port "${network_port}" | cat > "${RAW_RESULT_DIR}"/networks/"${network_port}".log &
+done
 
-lsof -p "${PID}" >> "${RAW_RESULT_DIR}"/listOfFileAndNetworks.log 
+lsof -p "${PID}" > "${RAW_RESULT_DIR}"/file_networks_list.log
+sleep "${NUMBER_OF_MEASUREMENTS}" && sudo killall bmon && sudo killall tcpdump > /dev/null
+

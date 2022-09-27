@@ -9,10 +9,15 @@ fi
 
 mkdir "${workScriptsDir}"/data
 mkdir "${workScriptsDir}"/data/raw
+mkdir "${workScriptsDir}"/data/raw/networks
 mkdir "${workScriptsDir}"/data/processed
 
-${goal} &
+sudo killall "${goal}" > /dev/null
 
-"${workScriptsDir}"/src/collect_data.sh "${goal}" "${workScriptsDir}/data/raw" "${NUMBER_OF_MEASUREMENTS}"
-kill "$(pidof ${goal})"
-"${workScriptsDir}"/src/preprocess_data.sh "${workScriptsDir}/data/raw" "${workScriptsDir}/data/processed" "${NUMBER_OF_MEASUREMENTS}"
+"${goal}" &
+
+PID=$(pidof "${goal}")
+
+sudo "${workScriptsDir}"/src/collect_data.sh "${PID}" "${workScriptsDir}/data/raw" "${NUMBER_OF_MEASUREMENTS}"
+sudo killall "${goal}" > /dev/null
+sudo "${workScriptsDir}"/src/preprocess_data.sh "${workScriptsDir}/data/raw" "${workScriptsDir}/data/processed" "${NUMBER_OF_MEASUREMENTS}"
