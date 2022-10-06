@@ -1,4 +1,6 @@
-data
+data*
 .data*
-goal/*
+target/*
 .vscode
+FlameGraph
+test
