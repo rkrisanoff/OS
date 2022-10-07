@@ -111,6 +111,8 @@ PID=$(pidof "${target}")
 
 # collecting data
 lsof -p "${PID}" >>"${work_dir}"/data/raw/file_networks_list.log
+sudo strace -e openat -f -p "${PID}" 2> "${work_dir}"/data/raw/openfiles.log &
+
 ps huH -p "${PID}" | wc >"${work_dir}"/data/raw/threads_count.log &
 pmap -x "${PID}" >"${work_dir}"/data/raw/memory_map.log &
 top -b -H -n$(("${number_of_measurements}" / 3)) -p "${PID}" >"${work_dir}"/data/raw/threads.log &
@@ -118,7 +120,7 @@ pidstat -p "${PID}" 1 "${number_of_measurements}" >"${work_dir}"/data/raw/cpu.lo
 pidstat -p "${PID}" -d 1 "${number_of_measurements}" >"${work_dir}"/data/raw/io.log &
 if [ "${flame_graph_path_flag}" = 'true' ]; then
     perf record -F 99 -p "${PID}" -g -- sleep "${number_of_measurements}"
-    perf script >"${work_dir}"/data/raw/out.perf &
+    perf script >"${work_dir}"/data/raw/out.perf
     echo "flame graph will be"
 fi
 
